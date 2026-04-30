@@ -79,3 +79,6 @@ During local development, Vite proxies `/api` requests to `http://localhost:8080
 ## Assumption
 
 I treated your stack request as `Spring Boot backend + SQL database + React frontend`. The `py` part looked ambiguous, so I did not add a Python service that would duplicate backend responsibility.
+
+
+Deployed - https://productmanagement-tasks.netlify.app/
