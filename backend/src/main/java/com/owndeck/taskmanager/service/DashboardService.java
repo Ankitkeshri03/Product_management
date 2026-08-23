@@ -10,6 +10,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class DashboardService {
@@ -25,6 +26,7 @@ public class DashboardService {
         this.mapperService = mapperService;
     }
 
+    @Transactional(readOnly = true)
     public DashboardResponse getDashboard(Authentication authentication) {
         var projects = projectService.getProjects(authentication);
         var currentUser = userService.getCurrentUser(authentication);
@@ -32,11 +34,14 @@ public class DashboardService {
         var tasks = projectIds.isEmpty() ? java.util.List.<com.owndeck.taskmanager.model.Task>of() : taskRepository.findByProjectIds(projectIds);
         long myTasks = tasks.stream().filter(task -> task.getAssignedTo() != null && task.getAssignedTo().getId().equals(currentUser.getId())).count();
         long overdueTasks = tasks.stream().filter(task -> task.getDueDate() != null && task.getDueDate().isBefore(LocalDate.now()) && task.getStatus() != TaskStatus.DONE).count();
+        
+        Map<TaskStatus, Long> statusCounts = tasks.stream()
+                .collect(Collectors.groupingBy(com.owndeck.taskmanager.model.Task::getStatus, Collectors.counting()));
         Map<String, Long> statusBreakdown = Arrays.stream(TaskStatus.values())
-                .collect(Collectors.toMap(Enum::name, status -> tasks.stream().filter(task -> task.getStatus() == status).count()));
+                .collect(Collectors.toMap(Enum::name, status -> statusCounts.getOrDefault(status, 0L)));
 
         var recentTasks = tasks.stream()
-                .sorted(Comparator.comparing(com.owndeck.taskmanager.model.Task::getCreatedAt).reversed())
+                .sorted(Comparator.comparing(com.owndeck.taskmanager.model.Task::getCreatedAt, Comparator.nullsLast(Comparator.reverseOrder())))
                 .limit(6)
                 .map(mapperService::toTaskResponse)
                 .toList();

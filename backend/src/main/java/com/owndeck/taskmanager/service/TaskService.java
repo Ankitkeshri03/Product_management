@@ -2,6 +2,7 @@ package com.owndeck.taskmanager.service;
 
 import com.owndeck.taskmanager.dto.TaskDtos;
 import com.owndeck.taskmanager.model.Project;
+import com.owndeck.taskmanager.model.Role;
 import com.owndeck.taskmanager.model.Task;
 import com.owndeck.taskmanager.model.User;
 import com.owndeck.taskmanager.repository.ProjectMemberRepository;
@@ -45,8 +46,8 @@ public class TaskService {
         return mapperService.toTaskResponse(task);
     }
 
+    @Transactional(readOnly = true)
     public List<TaskDtos.TaskResponse> getTasks(Authentication authentication) {
-        userService.getCurrentUser(authentication);
         var projects = projectService.getProjects(authentication);
         List<Long> projectIds = projects.stream().map(project -> project.id()).toList();
         if (projectIds.isEmpty()) {
@@ -95,7 +96,7 @@ public class TaskService {
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Assigned user not found"));
         boolean allowed = project.getOwner().getId().equals(assignedToId)
                 || projectMemberRepository.existsByProjectIdAndUserId(project.getId(), assignedToId)
-                || assignee.getRole().name().equals("ROLE_ADMIN");
+                || assignee.getRole() == Role.ROLE_ADMIN;
         if (!allowed) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Assigned user must be a project member or admin");
         }

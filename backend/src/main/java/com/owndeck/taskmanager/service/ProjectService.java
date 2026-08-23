@@ -3,6 +3,7 @@ package com.owndeck.taskmanager.service;
 import com.owndeck.taskmanager.dto.ProjectDtos;
 import com.owndeck.taskmanager.model.Project;
 import com.owndeck.taskmanager.model.ProjectMember;
+import com.owndeck.taskmanager.model.Role;
 import com.owndeck.taskmanager.model.TaskStatus;
 import com.owndeck.taskmanager.model.User;
 import com.owndeck.taskmanager.repository.ProjectMemberRepository;
@@ -135,7 +136,7 @@ public class ProjectService {
         Project project = projectRepository.findWithDetailsById(projectId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Project not found"));
         boolean hasAccess = project.getOwner().getId().equals(user.getId())
-                || user.getRole().name().equals("ROLE_ADMIN")
+                || user.getRole() == Role.ROLE_ADMIN
                 || projectMemberRepository.existsByProjectIdAndUserId(projectId, user.getId());
         if (!hasAccess) {
             throw new ApiException(HttpStatus.FORBIDDEN, "You do not have access to this project");
@@ -145,7 +146,7 @@ public class ProjectService {
     }
 
     public void requireProjectManagementAccess(Project project, User actor) {
-        boolean allowed = project.getOwner().getId().equals(actor.getId()) || actor.getRole().name().equals("ROLE_ADMIN");
+        boolean allowed = project.getOwner().getId().equals(actor.getId()) || actor.getRole() == Role.ROLE_ADMIN;
         if (!allowed) {
             throw new ApiException(HttpStatus.FORBIDDEN, "Only admins or project owners can manage this project");
         }
